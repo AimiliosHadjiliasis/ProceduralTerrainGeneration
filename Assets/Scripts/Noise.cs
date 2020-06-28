@@ -12,17 +12,32 @@ public static class Noise
     //Generate noise map and have certain values of 0 and 1
     //mapWidth and mapHeight -> The dimensions of our scene
     //Scale -> is the scale of the noise
+    //Note:
+    //Frequency(x axis) -> lacunarity ^ num
+    //Amplitude(y axis) -> presistance ^ num
+    //so this means:
+    //Increase of lacunaruty = increase of small features
+    //Increase of presistance = increase the amount that small features will effect our overall shape
+    //The goal is to create a lot of unique maps so we do this by sampling our points from radically different locations
+    //so we add seed in order to get the same map in case ew use the same seed 
     public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight,int seed, float scale, int octives, float presistance, float lacunnarity, Vector2 offset)
     {
         //create 2d array for our noise map with size mapWidth and mapHeight
         float[,] noiseMap = new float[mapWidth, mapHeight];
 
+        //prng = pseudo random number generator
         System.Random prng = new System.Random(seed);
+        //Here we want each octive to be sampled from diferent locations so create hare an array of Vector2
+        //and add them in the loop of octives
         Vector2[] octiveOffsets = new Vector2[octives];
+        
+        //Loop through our octives
         for (int i = 0; i < octives; i++)
         {
-            float offsetX = prng.Next(-10000, 10000) + offset.x;
-            float offsetY = prng.Next(-10000, 10000) + offset.y;
+            //we dont want to give a mathf.perlin noise that its too high because 
+            //it will give us the same output again again
+            float offsetX = prng.Next(-100000, 100000) + offset.x;
+            float offsetY = prng.Next(-100000, 100000) + offset.y;
             octiveOffsets[i] = new Vector2(offsetX, offsetY);
         }
 
@@ -32,9 +47,11 @@ public static class Noise
             scale = 0.0001f;
         }
 
-        float maxNoiseHeight = float.MinValue;
+        //Keep track of lowestand highest values
+        float maxNoiseHeight = float.MinValue;  
         float minNoiseHeight = float.MaxValue;
 
+        //These are used in order to zoom in the midle of the screen instead of the top right corner
         float halfWidth = mapWidth / 2f;
         float halfHeight = mapHeight / 2f;
 
@@ -43,10 +60,10 @@ public static class Noise
         {
             for (int x = 0; x < mapWidth; x++)
             {
-
+                //Create frequency(y axis) and amplitude(x axis)
                 float amplitude = 1;
-                float frequency = 0.5f;
-                float noiseHeight = 0;
+                float frequency = 1;
+                float noiseHeight = 0;  //Keep track of our current height value
 
                 for (int i = 0; i < octives; i++)
                 {
@@ -56,31 +73,39 @@ public static class Noise
 
 
                     //so now because we have our sample coordinates 
-                    float perlinNoiseValue = Mathf.PerlinNoise(sampleX, sampleY) * 2 - 1;
-                    //noiseMap[x, y] = perlinNOiseValue; //assing perlin value to noiseMap
-
+                    float perlinNoiseValue = Mathf.PerlinNoise(sampleX, sampleY) * 2 - 1; //by *2-1 we make it able to get values from -1 to 1
+                    
+                    //Instead of setting up the noise map directly equal to the perlin value
+                    //we increase the noise height by the perlin value of each octive
                     noiseHeight += perlinNoiseValue * amplitude;
 
-                    amplitude *= presistance;
-                    frequency *= lacunnarity;
+                    amplitude *= presistance;   //At the end of each octive (it decreases)
+                    frequency *= lacunnarity;   //At the end of each octive (it increases)
                 }
-                if (noiseHeight > maxNoiseHeight)
-                {
+
+                //Normalise height value so it will be in range of 0-1
+                if (noiseHeight > maxNoiseHeight){
                     maxNoiseHeight = noiseHeight;
                 }
-                else if (noiseHeight <minNoiseHeight)
-                {
+                else if (noiseHeight <minNoiseHeight){
                     minNoiseHeight = noiseHeight;
                 }
-                noiseMap[x, y] = noiseHeight;
+                noiseMap[x, y] = noiseHeight;   //Apply the noise height to height map
               
             }
         }
 
-        for (int y = 0; y < mapHeight; y++)
-        {
-            for (int x = 0; x < mapWidth; x++)
-            {
+        
+        //So now that we know what range our noise map values are in 
+        //we want to loop through this map values again 
+        for (int y = 0; y < mapHeight; y++){
+            for (int x = 0; x < mapWidth; x++){
+                //InverseLerp return a value between 0 and 1
+                //eg. if our noise map value is equal to the min node height then it will return 0
+                //if its equal to our max noise height then it will return 1
+                //if is halfway between the 2 it would return 0.5 etc
+                //-----------------------------------------------------------------
+                //This effectively normalise out noiseMap
                 noiseMap[x, y] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x, y]);
             }
         }
