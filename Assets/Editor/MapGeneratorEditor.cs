@@ -13,7 +13,7 @@ public class MapGeneratorEditor : Editor    //We inherit from Editor here instea
     public override void OnInspectorGUI()   //We override the Inspector (custom)
     {
         MapGenerator mapGen = (MapGenerator)target; //cast target to map generation
-        DrawDefaultInspector();
+        //DrawDefaultInspector();
 
         if (DrawDefaultInspector()) //if any value change in the inspector
         {

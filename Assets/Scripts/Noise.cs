@@ -68,8 +68,8 @@ public static class Noise
                 for (int i = 0; i < octives; i++)
                 {
                     //Create our sample coordinates: figure out at which point we are sampling from
-                    float sampleX = x-halfWidth / scale * frequency + octiveOffsets[i].x;
-                    float sampleY = y-halfHeight / scale * frequency + octiveOffsets[i].y;
+                    float sampleX = (x-halfWidth) / scale * frequency + octiveOffsets[i].x;
+                    float sampleY = (y-halfHeight) / scale * frequency + octiveOffsets[i].y;
 
 
                     //so now because we have our sample coordinates 
