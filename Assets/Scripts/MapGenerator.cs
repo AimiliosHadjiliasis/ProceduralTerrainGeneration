@@ -12,10 +12,14 @@ public class MapGenerator : MonoBehaviour
         Mesh
     };
 
-    public DrawMode drawMode; 
+    public DrawMode drawMode;
 
-    public int mapWidth;    //initise the mapWidth
-    public int mapHeight;   //initise the mapHeight
+    //ADD SUPPORT FOR MULTIPLE MESH RESOLUTION
+    const int mapChunkSize = 241;
+    [Range(0,6)] //limit lod to 0-6 so we can only multiply by 2 to get the value of the increment
+    public int levelOfDetail;
+
+
     public float noiseScale;
 
     public int octives; 
@@ -28,7 +32,10 @@ public class MapGenerator : MonoBehaviour
     public Vector2 offset;
     
     //initialise bool to be able to update the map autoamtically every time we add a value in the inspector
-    public bool autoUpdate; 
+    public bool autoUpdate;
+
+    public float meshHeightMultiplier; //used to multiply the y and give height to the scene objects
+    public AnimationCurve meshHeightCurve;  //Create curve to determine how the different height levels should affected by the height multiplier
 
     public TerrainType[] regions;   //Create array of terrain types
 
@@ -36,13 +43,13 @@ public class MapGenerator : MonoBehaviour
     public void GenerateMap()
     {
         //fetching Noisemap from noise class
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, seed, noiseScale, octives, presistance,lacunarity, offset);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, noiseScale, octives, presistance,lacunarity, offset);
 
-        Color[] colourMap = new Color[mapWidth * mapHeight];    //Create colour map to save all colour in this array
+        Color[] colourMap = new Color[mapChunkSize * mapChunkSize];    //Create colour map to save all colour in this array
 
         //Loop through the noise map that we receive
-        for (int y = 0; y < mapHeight; y++){
-            for (int x = 0; x < mapWidth; x++){
+        for (int y = 0; y < mapChunkSize; y++){
+            for (int x = 0; x < mapChunkSize; x++){
                 //So the height in this point is equal to the coordinates of our noise map at cords x and y
                 float currenHeight = noiseMap[x, y];
 
@@ -52,7 +59,7 @@ public class MapGenerator : MonoBehaviour
                     //if current height falls to the region then this means that we have find the region
                     if (currenHeight <= regions[i].height)
                     {
-                        colourMap[y * mapWidth + x] = regions[i].colour; //save the colour for this point
+                        colourMap[y * mapChunkSize + x] = regions[i].colour; //save the colour for this point
                         break;  //so we dont need to check the other regions
                     }
                 }
@@ -66,10 +73,10 @@ public class MapGenerator : MonoBehaviour
             display.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap));   //Draw texture of noiseMap
         }
         else if (drawMode == DrawMode.ColourMap){
-            display.DrawTexture(TextureGenerator.TextureFromColourMap(colourMap,mapWidth,mapHeight));   //Draw texture of colourMap
+            display.DrawTexture(TextureGenerator.TextureFromColourMap(colourMap,mapChunkSize,mapChunkSize));   //Draw texture of colourMap
         }
         else if (drawMode == DrawMode.Mesh){
-            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap), TextureGenerator.TextureFromColourMap(colourMap, mapWidth, mapHeight));
+            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap,meshHeightMultiplier,meshHeightCurve,levelOfDetail), TextureGenerator.TextureFromColourMap(colourMap, mapChunkSize, mapChunkSize));
         }
     }
 
@@ -78,12 +85,7 @@ public class MapGenerator : MonoBehaviour
     //And numebr of octives always bigger than 0
     void OnValidate()
     {
-        if (mapWidth < 1){
-            mapWidth = 1;
-        }
-        if (mapHeight < 1){
-            mapHeight = 1;
-        }
+
         if (lacunarity < 1){
             lacunarity = 1;
         }
