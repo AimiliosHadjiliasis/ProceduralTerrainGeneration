@@ -15,10 +15,14 @@ public class MapGenerator : MonoBehaviour
     public DrawMode drawMode;
 
     //ADD SUPPORT FOR MULTIPLE MESH RESOLUTION
-    const int mapChunkSize = 241;
+    //We use chunk size of 241, this is because unity supports meshes that has a number of vertices
+    //v=sqr(w) <= 255^2 = 65025
+    //We use the number 241 since we have w-1 = 240 and 240 is dividable with all odd numbers from 2-12
+    //which give us a nice way to work with our i 
+    //(also) map width and map height is replaced with that mapChunk variable
+    public const int mapChunkSize = 241;
     [Range(0,6)] //limit lod to 0-6 so we can only multiply by 2 to get the value of the increment
     public int levelOfDetail;
-
 
     public float noiseScale;
 
