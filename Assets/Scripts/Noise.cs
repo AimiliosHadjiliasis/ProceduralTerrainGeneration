@@ -9,6 +9,13 @@ using UnityEngine;
 //initialise the class as static
 public static class Noise 
 {
+
+    public enum NormalizeMode
+    {
+        Local,
+        Global
+    }
+
     //Generate noise map and have certain values of 0 and 1
     //mapWidth and mapHeight -> The dimensions of our scene
     //Scale -> is the scale of the noise
@@ -20,7 +27,7 @@ public static class Noise
     //Increase of presistance = increase the amount that small features will effect our overall shape
     //The goal is to create a lot of unique maps so we do this by sampling our points from radically different locations
     //so we add seed in order to get the same map in case ew use the same seed 
-    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight,int seed, float scale, int octives, float presistance, float lacunnarity, Vector2 offset)
+    public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight,int seed, float scale, int octives, float presistance, float lacunnarity, Vector2 offset, NormalizeMode normalizeMode)
     {
         //create 2d array for our noise map with size mapWidth and mapHeight
         float[,] noiseMap = new float[mapWidth, mapHeight];
@@ -30,15 +37,24 @@ public static class Noise
         //Here we want each octive to be sampled from diferent locations so create hare an array of Vector2
         //and add them in the loop of octives
         Vector2[] octiveOffsets = new Vector2[octives];
-        
+
+        float maxPossibleHeight = 0;
+
+        //Create frequency(y axis) and amplitude(x axis)
+        float amplitude = 1;
+        float frequency = 1;
+
         //Loop through our octives
         for (int i = 0; i < octives; i++)
         {
             //we dont want to give a mathf.perlin noise that its too high because 
             //it will give us the same output again again
             float offsetX = prng.Next(-100000, 100000) + offset.x;
-            float offsetY = prng.Next(-100000, 100000) + offset.y;
+            float offsetY = prng.Next(-100000, 100000) - offset.y;
             octiveOffsets[i] = new Vector2(offsetX, offsetY);
+
+            maxPossibleHeight += amplitude;
+            amplitude *= presistance;
         }
 
         //In case that our scale is equal to 0 we get a division error since we can devide a number with 0
@@ -48,8 +64,8 @@ public static class Noise
         }
 
         //Keep track of lowestand highest values
-        float maxNoiseHeight = float.MinValue;  
-        float minNoiseHeight = float.MaxValue;
+        float maxLocalNoiseHeight = float.MinValue;  
+        float minLocalNoiseHeight = float.MaxValue;
 
         //These are used in order to zoom in the midle of the screen instead of the top right corner
         float halfWidth = mapWidth / 2f;
@@ -61,15 +77,15 @@ public static class Noise
             for (int x = 0; x < mapWidth; x++)
             {
                 //Create frequency(y axis) and amplitude(x axis)
-                float amplitude = 1;
-                float frequency = 1;
+                amplitude = 1;
+                frequency = 1;
                 float noiseHeight = 0;  //Keep track of our current height value
 
                 for (int i = 0; i < octives; i++)
                 {
                     //Create our sample coordinates: figure out at which point we are sampling from
-                    float sampleX = (x-halfWidth) / scale * frequency + octiveOffsets[i].x;
-                    float sampleY = (y-halfHeight) / scale * frequency + octiveOffsets[i].y;
+                    float sampleX = (x-halfWidth + octiveOffsets[i].x) / scale * frequency ;
+                    float sampleY = (y-halfHeight + octiveOffsets[i].y) / scale * frequency + octiveOffsets[i].y;
 
 
                     //so now because we have our sample coordinates 
@@ -84,11 +100,11 @@ public static class Noise
                 }
 
                 //Normalise height value so it will be in range of 0-1
-                if (noiseHeight > maxNoiseHeight){
-                    maxNoiseHeight = noiseHeight;
+                if (noiseHeight > maxLocalNoiseHeight){
+                    maxLocalNoiseHeight = noiseHeight;
                 }
-                else if (noiseHeight <minNoiseHeight){
-                    minNoiseHeight = noiseHeight;
+                else if (noiseHeight <minLocalNoiseHeight){
+                    minLocalNoiseHeight = noiseHeight;
                 }
                 noiseMap[x, y] = noiseHeight;   //Apply the noise height to height map
               
@@ -106,7 +122,16 @@ public static class Noise
                 //if is halfway between the 2 it would return 0.5 etc
                 //-----------------------------------------------------------------
                 //This effectively normalise out noiseMap
-                noiseMap[x, y] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x, y]);
+
+                if (normalizeMode == NormalizeMode.Local)
+                {
+                    noiseMap[x, y] = Mathf.InverseLerp(minLocalNoiseHeight, maxLocalNoiseHeight, noiseMap[x, y]);
+                }
+                else
+                {
+                    float normalizedHeight = (noiseMap[x, y] + 1) / (2f * maxPossibleHeight / 1.85f);
+                    noiseMap[x, y] = Mathf.Clamp(normalizedHeight, 0, int.MaxValue);
+                }
             }
         }
 

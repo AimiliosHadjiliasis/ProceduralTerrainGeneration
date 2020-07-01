@@ -19,7 +19,7 @@ public class MapGeneratorEditor : Editor    //We inherit from Editor here instea
         {
             if (mapGen.autoUpdate) // if we auto update
             {
-                mapGen.GenerateMap();   //we generate the map
+                mapGen.DrawMapInEditor();   //we generate the map
             }
         }
 
@@ -27,7 +27,7 @@ public class MapGeneratorEditor : Editor    //We inherit from Editor here instea
         if (GUILayout.Button("Generate"))
         {
             //if pressed then generate the map
-            mapGen.GenerateMap();
+            mapGen.DrawMapInEditor();
         }
     }
 }
